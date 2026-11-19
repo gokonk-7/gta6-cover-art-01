@@ -1,84 +1,74 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Vice Cover Studio — GTA-style cover maker</title>
-<link rel="stylesheet" href="style.css">
+<title>Vice Cover Studio — GTA 6-style cover art maker</title>
+<link rel="stylesheet" href="./style.css">
 </head>
 <body>
 <header class="topbar">
   <div class="brand">
-    <span class="brand-mark">VCS</span>
+    <span class="brand-mark" aria-hidden="true">★</span>
     <div>
       <h1>Vice Cover Studio</h1>
-      <p>Turn any photo + caption into poster-style cover art. Offline, free, no upload.</p>
+      <p>Your photo + a caption, made into poster cover art. Offline — photos never leave this machine.</p>
     </div>
   </div>
   <div class="top-actions">
-    <button id="shuffleBtn" type="button" title="Shuffle samples, layout and grade">Shuffle</button>
-    <button id="resetBtn" type="button" title="Reset panels and caption">Reset</button>
+    <button id="export-square" type="button" class="btn primary">Export 1080 × 1080</button>
+    <button id="export-portrait" type="button" class="btn">Export 1080 × 1350</button>
+    <button id="export-wide" type="button" class="btn">Export 1920 × 1080</button>
   </div>
 </header>
 
-<main class="workspace">
-  <section class="stage-wrap">
-    <canvas id="stage" width="1080" height="1080" aria-label="Cover preview"></canvas>
-    <p class="stage-hint">Drag a panel to pan its photo &middot; photos never leave your machine</p>
-    <div class="export-row" role="group" aria-label="Export size">
-      <span class="export-label">Export PNG</span>
-      <button type="button" data-export="square">1080 &times; 1080</button>
-      <button type="button" data-export="portrait">1080 &times; 1350</button>
-      <button type="button" data-export="wide">1920 &times; 1080</button>
+<main class="studio">
+  <section class="preview" aria-label="Cover preview">
+    <div class="canvas-wrap">
+      <canvas id="cover" width="1080" height="1080" aria-label="Live cover preview"></canvas>
+      <p class="hint">Drag a photo on the cover to move it · scroll over a panel to zoom · click a panel to select it</p>
+    </div>
+    <div class="size-row" role="group" aria-label="Preview size">
+      <span class="row-label">Preview size</span>
+      <button type="button" class="chip size-chip is-active" data-size="square">Square</button>
+      <button type="button" class="chip size-chip" data-size="portrait">Portrait</button>
+      <button type="button" class="chip size-chip" data-size="wide">Wide</button>
     </div>
   </section>
 
-  <aside class="controls">
-    <section class="panel-block">
-      <h2>Caption</h2>
-      <label>Title
-        <input id="titleInput" type="text" value="VICE HEIST" maxlength="28" autocomplete="off">
-      </label>
-      <label>Subtitle
-        <input id="subtitleInput" type="text" value="A LEONIDA STORY" maxlength="48" autocomplete="off">
-      </label>
-    </section>
-
-    <section class="panel-block">
+  <aside class="controls" aria-label="Cover controls">
+    <section class="group">
       <h2>Layout</h2>
-      <div class="choice-row" id="layoutRow">
-        <button type="button" data-layout="triptych" class="active">Triptych</button>
-        <button type="button" data-layout="comic">Comic</button>
-        <button type="button" data-layout="heroDuo">Hero + Duo</button>
-        <button type="button" data-layout="quad">Quad</button>
-      </div>
+      <div class="chip-row" id="layout-row" role="group" aria-label="Layout"></div>
     </section>
 
-    <section class="panel-block">
-      <h2>Grade</h2>
-      <div class="choice-row" id="gradeRow">
-        <button type="button" data-grade="sunset" class="active">Sunset</button>
-        <button type="button" data-grade="neon">Neon</button>
-        <button type="button" data-grade="golden">Golden Hour</button>
-        <button type="button" data-grade="noir">Noir</button>
-      </div>
+    <section class="group">
+      <h2>Colour grade</h2>
+      <div class="chip-row" id="grade-row" role="group" aria-label="Colour grade"></div>
     </section>
 
-    <section class="panel-block">
-      <h2>Photos <span class="mini-note">one per panel</span></h2>
-      <div id="photoSlots"></div>
-      <p class="mini-note">Samples are bundled with the app. Your uploads stay local —
-        they are read with FileReader and never sent anywhere.</p>
+    <section class="group">
+      <h2>Caption</h2>
+      <label class="field">Title
+        <input id="title" type="text" maxlength="30" value="SUNSET HEIST" autocomplete="off">
+      </label>
+      <label class="field">Subtitle
+        <input id="subtitle" type="text" maxlength="40" value="LEONIDA • 2026" autocomplete="off">
+      </label>
     </section>
+
+    <section class="group">
+      <h2>Photos <span class="group-note" id="panel-count"></span></h2>
+      <div id="panel-list"></div>
+      <button id="fill-all" type="button" class="btn ghost">Use panel 1 photo everywhere</button>
+    </section>
+
+    <p id="status" class="status" role="status">Pick a sample or upload a photo to begin.</p>
+    <p class="fineprint">Original art drawn on canvas. No Rockstar Games logos, artwork or
+      fonts. Anton font under the SIL Open Font License — see app/fonts/FONTS.md.</p>
   </aside>
 </main>
 
-<footer class="footnote">
-  Vice Cover Studio — an offline cover maker. All artwork is drawn in code;
-  no Rockstar logos, artwork or fonts. Anton typeface: SIL Open Font License 1.1.
-</footer>
-
-<script type="module" src="src/editor.js"></script>
-<script type="module" src="src/shots.js"></script>
+<script type="module" src="./src/editor.js"></script>
 </body>
 </html>

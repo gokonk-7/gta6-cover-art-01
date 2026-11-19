@@ -1,13 +1,13 @@
 # Fonts
 
-The cover lettering uses **Anton** — a condensed bold sans-serif in the
-poster style — bundled here as `Anton-Regular.ttf` so the app works fully
-offline with no web-font download.
+## Anton
 
-- Typeface: Anton, designed by Vernon Adams
-- Source: github.com/google/fonts (ofl/anton)
-- License: SIL Open Font License, Version 1.1
-  (https://openfontlicense.org) — free to use, share and bundle with this
-  attribution.
-- Copyright: Copyright 2020 The Anton Project Authors
-  (https://github.com/googlefonts/anton)
+- **Font:** Anton, by Vernon Adams
+- **License:** SIL Open Font License, version 1.1
+- **Source:** https://github.com/google/fonts (ofl/anton)
+- **File:** `Anton-Regular.ttf`
+
+Anton is a condensed, heavy sans-serif — the bold poster lettering this app
+uses for its cover titles. It is free to ship with this app under the SIL
+Open Font License; the full license text is bundled with the font in the
+google/fonts repository.

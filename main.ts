@@ -1,58 +1,77 @@
-// Vice Cover Studio — entry program for make.fun gta6-cover-art-01.
+// Vice Cover Studio — the make.fun program for gta6-cover-art-01.
 //
-// Copies the app (app/) and its screenshots (screenshots/) into the output
-// directory and writes /output/dossier.json with make.fun's own buildDossier
-// from vendor/makefun-app.ts, so the dossier handed in is byte for byte the
-// one the scorer rebuilds. Node 22+ standard library only, no dependencies,
-// no network. Run it twice and the outputs are identical.
+// Node 22, standard library only. It gathers the entry — the static web app
+// under app/ and the screenshots under screenshots/ — into the output
+// directory and writes dossier.json there, the summary the judge reads,
+// using the vendored make.fun library (vendor/makefun-app.ts).
 //
-//   MAKEFUN_OUTPUT_DIR=out node main.ts
-//
-// Outside the grader MAKEFUN_OUTPUT_DIR stands in for /output.
+// Run it outside the grader with:
+//   mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
+// The grader runs it twice in a sandbox with no network; both runs must
+// produce byte-identical output, so this program only copies files and
+// writes the deterministic dossier — it never reads the clock or the network.
 
-import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { cpSync, existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { buildDossier } from './vendor/makefun-app.ts';
 
-// The caps the bounty's gate hands buildDossier (kit RULES.txt): the text
-// cap shapes the dossier bytes, the rest only refuse oversized input, so
-// passing them here makes this program fail exactly where the scorer would.
-const DOSSIER_CAPS = {
-  text_max_bytes: 163840,
-  screenshots: { max: 4, max_bytes: 262144 },
-  app_max_files: 993,
-  app_max_bytes: 50331648,
-};
+const repoRoot = fileURLToPath(new URL('.', import.meta.url));
+const outputDir = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
 
-function outputDir(): string {
-  const fromEnv = process.env.MAKEFUN_OUTPUT_DIR;
-  if (fromEnv && fromEnv.trim().length > 0) return resolve(fromEnv);
-  return '/output';
+// The gate's caps, from the competition's RULES.txt: the dossier text is
+// capped at 160 KiB, at most 4 screenshots of at most 256 KiB each, app/ at
+// most 993 files and 48 MiB in all, and no path under app/ over 1000 bytes.
+const DOSSIER_TEXT_MAX_BYTES = 163840;
+const SCREENSHOT_MAX = 4;
+const SCREENSHOT_MAX_BYTES = 262144;
+const APP_MAX_FILES = 993;
+const APP_MAX_BYTES = 50331648;
+const APP_PATH_MAX_BYTES = 1000;
+
+/** Refuse loudly instead of handing in an entry the gate would refuse. */
+function checkShot(file: string): void {
+  const size = statSync(file).size;
+  if (size > SCREENSHOT_MAX_BYTES) {
+    throw new Error(`${file} is ${size} bytes, over the 256 KiB screenshot cap`);
+  }
+}
+
+function copyEntry(): void {
+  mkdirSync(outputDir, { recursive: true });
+  cpSync(join(repoRoot, 'app'), join(outputDir, 'app'), { recursive: true });
+  mkdirSync(join(outputDir, 'screenshots'), { recursive: true });
+  const shotsDir = join(repoRoot, 'screenshots');
+  if (existsSync(shotsDir)) {
+    cpSync(shotsDir, join(outputDir, 'screenshots'), { recursive: true });
+  }
 }
 
 function main(): void {
-  const repoRoot = resolve(import.meta.dirname);
-  const outDir = outputDir();
-
-  // Start from an empty output directory so a stale file can never leak in.
-  rmSync(outDir, { recursive: true, force: true });
-  mkdirSync(outDir, { recursive: true });
-
-  for (const name of ['app', 'screenshots']) {
-    const source = join(repoRoot, name);
-    if (!existsSync(source)) {
-      throw new Error(`missing ${name}/ in ${repoRoot}`);
+  copyEntry();
+  const shotsDir = join(outputDir, 'screenshots');
+  if (existsSync(shotsDir)) {
+    for (const name of ['1-cover.jpg', '2-editor.jpg', '3-cover.jpg', '4-cover.jpg']) {
+      const file = join(shotsDir, name);
+      if (existsSync(file)) checkShot(file);
     }
-    cpSync(source, join(outDir, name), { recursive: true });
   }
-
-  const dossier = buildDossier(outDir, DOSSIER_CAPS);
-  writeFileSync(join(outDir, 'dossier.json'), dossier);
-  // Fail fast, like the scorer: a dossier over 1.5 MiB can never be graded.
-  if (dossier.length > 1572864) {
-    throw new Error(`dossier.json is ${dossier.length} bytes, over the 1.5 MiB cap`);
+  writeFileSync(
+    join(outputDir, 'dossier.json'),
+    buildDossier(outputDir, {
+      text_max_bytes: DOSSIER_TEXT_MAX_BYTES,
+      screenshots: { max: SCREENSHOT_MAX, max_bytes: SCREENSHOT_MAX_BYTES },
+      app_max_files: APP_MAX_FILES,
+      app_max_bytes: APP_MAX_BYTES,
+      app_path_max_bytes: APP_PATH_MAX_BYTES,
+    }),
+  );
+  // The gate refuses a dossier over 1.5 MiB; fail here instead of handing
+  // in an entry the scorer would refuse.
+  const dossierSize = statSync(join(outputDir, 'dossier.json')).size;
+  if (dossierSize > 1572864) {
+    throw new Error(`dossier.json is ${dossierSize} bytes, over the 1.5 MiB cap`);
   }
-  console.log(`wrote ${join(outDir, 'dossier.json')} (${dossier.length} bytes)`);
 }
 
 main();

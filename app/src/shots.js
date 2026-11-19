@@ -1,93 +1,63 @@
-// Vice Cover Studio — screenshot scenes.
+// Vice Cover Studio — fixed scenes for screenshots.
 //
-// `?shot=cover` paints one cover fullscreen with no editor chrome (the
-// exported-cover shots); `?shot=editor` shows the editor with a sample
-// loaded. Extra parameters pick the scene: photo=<sample file>,
-// caption=<title>, subtitle=<text>, layout=<preset>, grade=<grade>.
-// Sets window.__shotReady once the scene has painted, so a screenshot
-// runner knows the frame is final.
+// `?shot=cover` paints one exported cover full-screen, with no editor
+// chrome, honouring `photo`, `caption`, `subtitle`, `layout`, `grade` and
+// `size` query params. `?shot=editor` shows the editor with sample photos
+// loaded, honouring the same params. Either way the scene sets
+// window.__shotReady once it has painted, so a screenshot tool knows when
+// to take the shot.
 
-import { loadImage, renderCover } from './cover.js';
+const COVER_PHOTOS = {
+  triptych: ['portrait-woman', 'portrait-man', 'boulevard'],
+  comic: ['portrait-woman', 'boulevard', 'portrait-man'],
+  heroDuo: ['boulevard', 'portrait-woman', 'portrait-man'],
+  quad: ['portrait-woman', 'portrait-man', 'boulevard', 'pier'],
+};
 
-function params() {
-  return new URLSearchParams(window.location.search);
+function pickPhotos(query, layout) {
+  const single = query.get('photo');
+  if (single) return [single];
+  return COVER_PHOTOS[layout] || COVER_PHOTOS.triptych;
 }
 
-function markReady() {
-  // Two animation frames: one for the paint, one for the font to settle.
-  requestAnimationFrame(() => {
+function paintWhenReady(hooks) {
+  return new Promise((resolve) => {
     requestAnimationFrame(() => {
-      window.__shotReady = true;
+      requestAnimationFrame(() => {
+        hooks.refresh();
+        window.__shotReady = true;
+        resolve();
+      });
     });
   });
 }
 
-async function shotCover(query) {
-  document.body.classList.add('shot-cover');
-  const stage = document.getElementById('stage');
-  const vice = window.__vice;
-  if (!vice) return;
-
+export async function runShot(shot, query, hooks) {
   const layout = query.get('layout') || 'triptych';
   const grade = query.get('grade') || 'sunset';
-  const title = query.get('caption') || 'VICE HEIST';
-  const subtitle = query.get('subtitle') || 'A LEONIDA STORY';
-  const photoName = query.get('photo') || 'portrait-woman.jpg';
+  const size = query.get('size') || (shot === 'cover' ? 'wide' : 'square');
+  const title = query.get('caption') || 'SUNSET HEIST';
+  const subtitle = query.get('subtitle') || 'LEONIDA • 2026';
 
-  vice.pickLayout(layout);
-  vice.pickGrade(grade);
-  vice.state.title = title.toUpperCase();
-  vice.state.subtitle = subtitle;
+  hooks.applyLayout(layout);
+  hooks.applyGrade(grade);
+  hooks.applyCaption(title, subtitle);
+  hooks.applySize(size);
 
-  const picks = {
-    triptych: ['portrait-woman.jpg', 'boulevard.jpg', 'pier.jpg'],
-    comic: ['portrait-man.jpg', 'portrait-woman.jpg', 'boulevard.jpg'],
-    heroDuo: ['portrait-woman.jpg', 'portrait-man.jpg', 'pier.jpg'],
-    quad: ['portrait-woman.jpg', 'portrait-man.jpg', 'boulevard.jpg', 'pier.jpg'],
-  };
-  const chosen = picks[layout] || picks.triptych;
-  // Only override the hero photo when the caller names one explicitly;
-  // the default picks already use a different photo per panel.
-  if (query.get('photo')) chosen[0] = photoName;
-  const images = await Promise.all(
-    chosen.map((name) => loadImage(`samples/${name}`).catch(() => null)),
-  );
-  vice.state.photos = images;
-  vice.state.pans = images.map(() => ({ x: 0, y: 0 }));
-  vice.state.zooms = images.map(() => 1);
-
-  // Size the stage to the window so the screenshot is the cover itself.
-  const size = [window.innerWidth, window.innerHeight];
-  renderCover(stage, { ...vice.state, size });
-  document.title = `${title} — Vice Cover Studio`;
-  markReady();
-}
-
-async function shotEditor(query) {
-  const vice = window.__vice;
-  if (!vice) return;
-  const layout = query.get('layout') || 'triptych';
-  const grade = query.get('grade') || 'sunset';
-  vice.pickLayout(layout);
-  vice.pickGrade(grade);
-  vice.state.title = (query.get('caption') || 'VICE HEIST').toUpperCase();
-  vice.state.subtitle = query.get('subtitle') || 'A LEONIDA STORY';
-  const titleInput = document.getElementById('titleInput');
-  const subtitleInput = document.getElementById('subtitleInput');
-  if (titleInput) titleInput.value = vice.state.title;
-  if (subtitleInput) subtitleInput.value = vice.state.subtitle;
-  await vice.loadStarters();
-  // Let the fonts finish before signalling ready.
-  if (document.fonts?.ready) {
-    await document.fonts.ready.catch(() => undefined);
+  const photos = pickPhotos(query, layout);
+  for (let i = 0; i < photos.length; i += 1) {
+    try {
+      const image = await hooks.loadPhoto(photos[i]);
+      hooks.applyPhoto(i, image, photos[i]);
+    } catch {
+      // A missing sample leaves that panel empty; the shot still paints.
+    }
   }
-  markReady();
-}
 
-const query = params();
-const shot = query.get('shot');
-if (shot === 'cover') {
-  shotCover(query).catch(() => { window.__shotReady = true; });
-} else if (shot === 'editor') {
-  shotEditor(query).catch(() => { window.__shotReady = true; });
+  if (shot === 'cover') {
+    document.body.classList.add('shot-cover');
+  }
+  await hooks.fontsReady();
+  hooks.refresh();
+  await paintWhenReady(hooks);
 }

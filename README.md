@@ -1,65 +1,53 @@
+[![make.fun bounty](https://img.shields.io/badge/make.fun-gta6--cover--art--01-ff2d78)](https://make.fun/bounty/gta6-cover-art-01)
+[![owner gokonk-7](https://img.shields.io/badge/owner-gokonk--7-00d1ff)](https://github.com/gokonk-7)
+[![referral sqj6a0rx](https://img.shields.io/badge/referral-sqj6a0rx-ffd166)](https://make.fun/r/sqj6a0rx)
+
 # Vice Cover Studio
 
-[![Owner: gokonk-7](https://img.shields.io/badge/owner-gokonk--7-ff5c8a)](https://github.com/gokonk-7)
-[![Repo: gta6-cover-art-01](https://img.shields.io/badge/repo-gta6--cover--art--01-7b2ff7)](https://github.com/gokonk-7/gta6-cover-art-01)
-[![make.fun referral: sqj6a0rx](https://img.shields.io/badge/make.fun-sqj6a0rx-00d1b2)](https://make.fun/r/sqj6a0rx)
-
-Turn any photo and a caption into GTA-poster-style cover art — right in your
-browser, fully offline. Pick a layout, drop in up to four photos, grade it
-like a Vice City sunset, and export a share-ready PNG.
-
-Built for the make.fun bounty
-[**gta6-cover-art-01 — "Make GTA 6 Cover Art"**](https://make.fun/bounty/gta6-cover-art-01)
-($250 pot, top 50). Entry is free and open source (MIT).
+Built for the **gta6-cover-art-01** bounty on [make.fun](https://make.fun/bounty/gta6-cover-art-01):
+turn any photo and a caption into GTA 6 poster-style cover art, in the browser,
+offline, exported as a PNG to share.
 
 ## What it does
 
-- **4 cover layouts** — Triptych (hero left + two stacked right), Comic (three
-  vertical panels), Hero+Duo (big top panel + two below), Quad (2×2 grid).
-- **Per-panel photos** — upload your own (files never leave your machine) or
-  use the four bundled samples. Drag to pan, slide to zoom, cover-fit crop
-  handles portrait, landscape and square shots.
-- **4 colour grades** — Sunset, Neon, Golden Hour and Noir, applied as canvas
-  overlays on top of a procedural Vice City backdrop: synthwave sun, skyline,
-  palm silhouettes and a glowing grid horizon. All artwork is drawn in code —
-  no Rockstar logos, artwork or fonts.
-- **Bold caption lettering** — editable title + subtitle in Anton (SIL OFL,
-  bundled under `app/fonts/`), with outline and drop shadow.
-- **One-click PNG export** — 1080×1080, 1080×1350 and 1920×1080, via
-  `canvas.toBlob`. Photo → caption → export in seconds.
+- **Four poster layouts** — Triptych, Comic, Hero + Duo, and Quad — switchable live.
+- **Any photo, any panel** — upload your own photos (they never leave your
+  machine) or use the bundled samples. Drag to pan each photo, zoom per panel,
+  cover-fit crop handles portrait, landscape and square shots.
+- **Bold poster lettering** — an editable title and subtitle set in Anton, with
+  a heavy outline and drop shadow, over a procedural Vice City sunset.
+- **Four colour grades** — Sunset, Neon, Golden Hour and Noir, applied as
+  canvas tints and washes.
+- **A painted backdrop, drawn on canvas** — striped synthwave sun, skyline and
+  palm silhouettes, a perspective grid on the horizon. No Rockstar artwork,
+  logos or fonts anywhere: every pixel is drawn by the app itself.
+- **One-click PNG export** in 1080 × 1080, 1080 × 1350 and 1920 × 1080.
 
-## Run it
+## Try it
 
-```bash
-node serve.ts        # serves app/ at http://localhost:8123
+```sh
+node serve.ts
+# open http://localhost:8080
 ```
 
-Then open the page, load photos, pick a layout and grade, and hit Export.
-No build step, no network requests, no accounts. Everything lives under
-`app/`.
-
-## Screenshot scenes
-
-Append a query string to preview a scene (used for the screenshots in
-`screenshots/`):
-
-- `?shot=cover&layout=triptych&grade=sunset&caption=VICE%20HEIST` — cover
-  alone, fullscreen, no editor chrome.
-- `?shot=editor` — the editor with a sample photo loaded.
+Pick a layout and a grade, drop a photo into each panel (or keep the samples),
+type a title, hit an export button. The app is plain static files under `app/`
+— no build step, no network requests, no tracking.
 
 ## Layout of the repo
 
-- `main.ts` — hands the app in: copies `app/` + `screenshots/` to the output
-  directory and writes `dossier.json` via `vendor/makefun-app.ts`.
-- `serve.ts` — tiny static file server for local testing.
-- `app/index.html`, `app/style.css` — page shell and neon-dark UI.
-- `app/src/cover.js` — the canvas renderer (backdrop, panels, grades,
-  lettering, export).
-- `app/src/editor.js` — UI wiring: uploads, panels, controls, exports.
-- `app/src/shots.js` — `?shot=` scenes for screenshots.
-- `app/fonts/`, `app/samples/` — bundled font and sample photos.
+- `app/index.html`, `app/style.css` — the editor page and its styling.
+- `app/src/cover.js` — the renderer: backdrop, panels, grades, lettering, export.
+- `app/src/editor.js` — the editor wiring: uploads, panels, controls, export.
+- `app/src/shots.js` — fixed `?shot=` scenes used for the screenshots.
+- `app/fonts/Anton-Regular.ttf` — Anton by Vernon Adams, SIL Open Font
+  License 1.1 (see `app/fonts/FONTS.md`).
+- `app/samples/` — bundled sample photos, made with an image model.
+- `main.ts` — the make.fun program: copies `app/` and `screenshots/` to the
+  output directory and writes `dossier.json`.
+- `serve.ts` — a tiny static server for local testing.
+- `screenshots/` — the four screenshots of the app and its covers.
 
 ## License
 
-MIT — see [LICENSE](LICENSE). Anton is © The Anton Project Authors, SIL
-Open Font License 1.1 (see `app/fonts/FONTS.md`).
+MIT — see [LICENSE](LICENSE).
