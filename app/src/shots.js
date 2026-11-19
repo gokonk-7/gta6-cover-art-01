@@ -1,89 +1,93 @@
-// Vice Cover Studio — fixed scenes for screenshots.
+// Vice Cover Studio — screenshot scenes.
 //
-// `?shot=cover` shows the cover alone, edge to edge, at the export size the
-// query asks for. `?shot=editor` shows the editor with sample photos loaded
-// in every panel. The query also takes `photo` (a sample file name without
-// the extension), `caption`, `subtitle`, `layout`, `grade` and `size`
-// (square, portrait or wide). `window.__shotReady` is set once the font has
-// loaded and the cover has painted, so a screenshot never catches a
-// half-drawn frame.
+// `?shot=cover` paints one cover fullscreen with no editor chrome (the
+// exported-cover shots); `?shot=editor` shows the editor with a sample
+// loaded. Extra parameters pick the scene: photo=<sample file>,
+// caption=<title>, subtitle=<text>, layout=<preset>, grade=<grade>.
+// Sets window.__shotReady once the scene has painted, so a screenshot
+// runner knows the frame is final.
 
-import { SIZES, autoPanFor, layoutPanels } from './cover.js';
+import { loadImage, renderCover } from './cover.js';
 
-function waitPaint() {
-  return new Promise((resolve) => {
-    requestAnimationFrame(() => requestAnimationFrame(resolve));
+function params() {
+  return new URLSearchParams(window.location.search);
+}
+
+function markReady() {
+  // Two animation frames: one for the paint, one for the font to settle.
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      window.__shotReady = true;
+    });
   });
 }
 
-export async function runShot(shot, query, api) {
-  const { loadSample, setPhoto, selectPanel, redraw, resizePreview, state, titleInput, subtitleInput } = api;
+async function shotCover(query) {
+  document.body.classList.add('shot-cover');
+  const stage = document.getElementById('stage');
+  const vice = window.__vice;
+  if (!vice) return;
 
-  const layout = query.get('layout');
-  if (layout && ['triptych', 'comic', 'hero', 'quad'].includes(layout)) state.layout = layout;
-  const grade = query.get('grade');
-  if (grade && ['sunset', 'neon', 'gold', 'noir'].includes(grade)) state.grade = grade;
-  const size = query.get('size');
-  if (size && SIZES[size]) state.size = size;
+  const layout = query.get('layout') || 'triptych';
+  const grade = query.get('grade') || 'sunset';
+  const title = query.get('caption') || 'VICE HEIST';
+  const subtitle = query.get('subtitle') || 'A LEONIDA STORY';
+  const photoName = query.get('photo') || 'portrait-woman.jpg';
 
-  const caption = query.get('caption');
-  if (caption != null) {
-    state.title = caption;
-    titleInput.value = caption;
-  }
-  const subtitle = query.get('subtitle');
-  if (subtitle != null) {
-    state.subtitle = subtitle;
-    subtitleInput.value = subtitle;
-  }
+  vice.pickLayout(layout);
+  vice.pickGrade(grade);
+  vice.state.title = title.toUpperCase();
+  vice.state.subtitle = subtitle;
 
-  // Fill the panels with the requested sample first, then spread the other
-  // samples across the remaining panels so every layout looks full. Each
-  // photo gets the same starting pan the editor would give it, so faces
-  // stay in frame in the wide side panels. `photos` names the fill order
-  // (sample file names without the extension); the default puts the square
-  // pier shot in the wide lower panel, where a tall portrait would crop.
-  const first = `${query.get('photo') ?? 'portrait-woman'}.jpg`;
-  const rest = ['portrait-man.jpg', 'pier.jpg', 'boulevard.jpg', 'portrait-woman.jpg'];
-  const listed = (query.get('photos') ?? '')
-    .split(',')
-    .map((s) => `${s.trim()}.jpg`)
-    .filter((f) => f !== '.jpg');
-  const files = listed.length
-    ? [...listed, ...rest.filter((f) => !listed.includes(f))]
-    : [first, ...rest.filter((f) => f !== first)];
-  const target = SIZES[state.size];
-  const rects = layoutPanels(state.layout, target.w, target.h);
-  for (let i = 0; i < 4; i++) {
-    try {
-      const img = await loadSample(files[i]);
-      const pan = rects[i] ? autoPanFor(img, rects[i]) : { panX: 0, panY: 0 };
-      state.panels[i] = { img, panX: pan.panX, panY: pan.panY, zoom: 1 };
-      img.dataset.file = files[i];
-    } catch {
-      // A missing sample leaves its panel empty; the cover still draws.
-    }
-  }
+  const picks = {
+    triptych: ['portrait-woman.jpg', 'boulevard.jpg', 'pier.jpg'],
+    comic: ['portrait-man.jpg', 'portrait-woman.jpg', 'boulevard.jpg'],
+    heroDuo: ['portrait-woman.jpg', 'portrait-man.jpg', 'pier.jpg'],
+    quad: ['portrait-woman.jpg', 'portrait-man.jpg', 'boulevard.jpg', 'pier.jpg'],
+  };
+  const chosen = picks[layout] || picks.triptych;
+  // Only override the hero photo when the caller names one explicitly;
+  // the default picks already use a different photo per panel.
+  if (query.get('photo')) chosen[0] = photoName;
+  const images = await Promise.all(
+    chosen.map((name) => loadImage(`samples/${name}`).catch(() => null)),
+  );
+  vice.state.photos = images;
+  vice.state.pans = images.map(() => ({ x: 0, y: 0 }));
+  vice.state.zooms = images.map(() => 1);
 
-  if (shot === 'cover') {
-    document.body.classList.add('shot-cover');
-    // The cover scene draws at the exact export size, not the preview size.
-    const cover = document.getElementById('cover');
-    cover.width = target.w;
-    cover.height = target.h;
-    redraw();
-  } else {
-    resizePreview();
-    selectPanel(0);
-  }
+  // Size the stage to the window so the screenshot is the cover itself.
+  const size = [window.innerWidth, window.innerHeight];
+  renderCover(stage, { ...vice.state, size });
+  document.title = `${title} — Vice Cover Studio`;
+  markReady();
+}
 
-  try {
-    await document.fonts.load('16px Anton');
-    await document.fonts.ready;
-  } catch {
-    // The fallback stack still draws if the font fails to load.
+async function shotEditor(query) {
+  const vice = window.__vice;
+  if (!vice) return;
+  const layout = query.get('layout') || 'triptych';
+  const grade = query.get('grade') || 'sunset';
+  vice.pickLayout(layout);
+  vice.pickGrade(grade);
+  vice.state.title = (query.get('caption') || 'VICE HEIST').toUpperCase();
+  vice.state.subtitle = query.get('subtitle') || 'A LEONIDA STORY';
+  const titleInput = document.getElementById('titleInput');
+  const subtitleInput = document.getElementById('subtitleInput');
+  if (titleInput) titleInput.value = vice.state.title;
+  if (subtitleInput) subtitleInput.value = vice.state.subtitle;
+  await vice.loadStarters();
+  // Let the fonts finish before signalling ready.
+  if (document.fonts?.ready) {
+    await document.fonts.ready.catch(() => undefined);
   }
-  redraw();
-  await waitPaint();
-  window.__shotReady = true;
+  markReady();
+}
+
+const query = params();
+const shot = query.get('shot');
+if (shot === 'cover') {
+  shotCover(query).catch(() => { window.__shotReady = true; });
+} else if (shot === 'editor') {
+  shotEditor(query).catch(() => { window.__shotReady = true; });
 }

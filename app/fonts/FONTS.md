@@ -1,9 +1,13 @@
 # Fonts
 
-The cover lettering uses **Anton** by Vernon Adams, shipped as
-`Anton-Regular.ttf` in this folder and loaded locally with `@font-face` —
-the app makes no network request for it.
+The cover lettering uses **Anton** — a condensed bold sans-serif in the
+poster style — bundled here as `Anton-Regular.ttf` so the app works fully
+offline with no web-font download.
 
-- License: SIL Open Font License 1.1
-- Source: github.com/google/fonts (the Anton family by Vernon Adams)
-- The full license text ships inside the font file itself.
+- Typeface: Anton, designed by Vernon Adams
+- Source: github.com/google/fonts (ofl/anton)
+- License: SIL Open Font License, Version 1.1
+  (https://openfontlicense.org) — free to use, share and bundle with this
+  attribution.
+- Copyright: Copyright 2020 The Anton Project Authors
+  (https://github.com/googlefonts/anton)
