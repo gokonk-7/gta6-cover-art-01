@@ -1,48 +1,43 @@
-// Fixed scenes for screenshots. `?shot=cover` shows the cover alone, full
-// screen, with no editor chrome; `?shot=editor` shows the editor with photos
-// loaded. Query knobs: photo0..photo3 (sample ids), caption (the title),
-// subtitle, layout, grade, size. window.__shotReady is set once painted.
+// Fixed scenes for screenshots: `?shot=cover` shows the cover alone,
+// fullscreen with no editor chrome; `?shot=editor` shows the editor with a
+// sample loaded. `photo` picks the sample, `caption` the title, `layout`
+// and `grade` the look. window.__shotReady is set once painted.
+import { SAMPLES } from './editor.js';
 
-const COVER_SCENES = {
-  wide: { layout: 'triptych', grade: 'sunset', size: 'wide', photos: ['portrait-woman', 'portrait-man', 'boulevard'], pans: { 2: { ox: 0.5, oy: 0.18 } } },
-  square: { layout: 'heroDuo', grade: 'neon', size: 'square', photos: ['portrait-man', 'portrait-woman', 'boulevard'], pans: { 2: { ox: 0.5, oy: 0.18 } } },
-  portrait: { layout: 'comic', grade: 'golden', size: 'portrait', photos: ['portrait-woman', 'boulevard', 'portrait-man'] },
+const TITLES = {
+  cover: 'VICE CITY',
+  editor: 'VICE CITY',
 };
 
-function paintDone() {
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    window.__shotReady = true;
-  }));
-}
-
 export async function runShot(shot, query, api) {
-  const size = query.get('size');
-  const scene = COVER_SCENES[size ?? ''] ?? null;
   if (shot === 'cover') document.body.classList.add('shot-cover');
+  const photoName = query.get('photo') ?? 'portrait-woman';
+  const title = query.get('caption') ?? TITLES[shot] ?? 'VICE CITY';
+  const subtitle = query.get('subtitle') ?? 'Two outlaws. One last score.';
+  const layout = query.get('layout') ?? (shot === 'cover' ? 'triptych' : 'triptych');
+  const grade = query.get('grade') ?? 'sunset';
+  const sample = SAMPLES.find((s) => s.file.startsWith(photoName)) ?? SAMPLES[0];
+  const second = SAMPLES.find((s) => s.file.startsWith(query.get('photo2') ?? 'portrait-man')) ?? SAMPLES[1];
+  const third = SAMPLES.find((s) => s.file.startsWith(query.get('photo3') ?? 'pier')) ?? SAMPLES[3];
 
-  if (scene) {
-    await api.setLayout(query.get('layout') ?? scene.layout);
-    api.setGrade(query.get('grade') ?? scene.grade);
-    api.setSize(scene.size);
-  } else {
-    await api.setLayout(query.get('layout') ?? 'triptych');
-    api.setGrade(query.get('grade') ?? 'sunset');
-    api.setSize(size ?? 'square');
+  const hero = await api.loadImage(`samples/${sample.file}`);
+  const two = await api.loadImage(`samples/${second.file}`);
+  const three = await api.loadImage(`samples/${third.file}`);
+  api.setState({
+    layout,
+    grade,
+    title,
+    subtitle,
+    panels: [
+      { photo: hero, name: 'Hero', pan: { x: 0, y: 0 }, zoom: 1 },
+      { photo: two, name: 'Panel 2', pan: { x: 0, y: 0 }, zoom: 1 },
+      { photo: three, name: 'Panel 3', pan: { x: 0, y: 0 }, zoom: 1 },
+    ],
+  });
+  // Let the Anton webfont arrive before we declare the shot painted.
+  if (document.fonts?.ready) {
+    try { await document.fonts.load('40px Anton'); await document.fonts.ready; } catch { /* fall back to the drawn frame */ }
   }
-
-  const photos = scene?.photos ?? ['portrait-woman', 'portrait-man', 'boulevard', 'pier'];
-  for (let i = 0; i < photos.length; i++) {
-    const pick = query.get(`photo${i}`) ?? photos[i];
-    try { await api.setPanelSample(i, pick); } catch { /* keep the slot as is */ }
-  }
-  // Scene pan overrides keep faces in frame (e.g. the boulevard shot's
-  // subject sits high in its frame, so its crop window slides up).
-  for (const [index, pan] of Object.entries(scene?.pans ?? {})) {
-    api.setPanelPan(Number(index), pan.ox, pan.oy);
-  }
-
-  api.setTitle(query.get('caption') ?? (shot === 'cover' ? 'NEON HEAT' : api.state.title));
-  api.setSubtitle(query.get('subtitle') ?? api.state.subtitle);
   api.redraw();
-  paintDone();
+  requestAnimationFrame(() => requestAnimationFrame(() => { window.__shotReady = true; }));
 }
