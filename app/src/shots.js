@@ -1,63 +1,48 @@
-// Vice Cover Studio — fixed scenes for screenshots.
-//
-// `?shot=cover` paints one exported cover full-screen, with no editor
-// chrome, honouring `photo`, `caption`, `subtitle`, `layout`, `grade` and
-// `size` query params. `?shot=editor` shows the editor with sample photos
-// loaded, honouring the same params. Either way the scene sets
-// window.__shotReady once it has painted, so a screenshot tool knows when
-// to take the shot.
+// Fixed scenes for screenshots. `?shot=cover` shows the cover alone, full
+// screen, with no editor chrome; `?shot=editor` shows the editor with photos
+// loaded. Query knobs: photo0..photo3 (sample ids), caption (the title),
+// subtitle, layout, grade, size. window.__shotReady is set once painted.
 
-const COVER_PHOTOS = {
-  triptych: ['portrait-woman', 'portrait-man', 'boulevard'],
-  comic: ['portrait-woman', 'boulevard', 'portrait-man'],
-  heroDuo: ['boulevard', 'portrait-woman', 'portrait-man'],
-  quad: ['portrait-woman', 'portrait-man', 'boulevard', 'pier'],
+const COVER_SCENES = {
+  wide: { layout: 'triptych', grade: 'sunset', size: 'wide', photos: ['portrait-woman', 'portrait-man', 'boulevard'], pans: { 2: { ox: 0.5, oy: 0.18 } } },
+  square: { layout: 'heroDuo', grade: 'neon', size: 'square', photos: ['portrait-man', 'portrait-woman', 'boulevard'], pans: { 2: { ox: 0.5, oy: 0.18 } } },
+  portrait: { layout: 'comic', grade: 'golden', size: 'portrait', photos: ['portrait-woman', 'boulevard', 'portrait-man'] },
 };
 
-function pickPhotos(query, layout) {
-  const single = query.get('photo');
-  if (single) return [single];
-  return COVER_PHOTOS[layout] || COVER_PHOTOS.triptych;
+function paintDone() {
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    window.__shotReady = true;
+  }));
 }
 
-function paintWhenReady(hooks) {
-  return new Promise((resolve) => {
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        hooks.refresh();
-        window.__shotReady = true;
-        resolve();
-      });
-    });
-  });
-}
+export async function runShot(shot, query, api) {
+  const size = query.get('size');
+  const scene = COVER_SCENES[size ?? ''] ?? null;
+  if (shot === 'cover') document.body.classList.add('shot-cover');
 
-export async function runShot(shot, query, hooks) {
-  const layout = query.get('layout') || 'triptych';
-  const grade = query.get('grade') || 'sunset';
-  const size = query.get('size') || (shot === 'cover' ? 'wide' : 'square');
-  const title = query.get('caption') || 'SUNSET HEIST';
-  const subtitle = query.get('subtitle') || 'LEONIDA • 2026';
-
-  hooks.applyLayout(layout);
-  hooks.applyGrade(grade);
-  hooks.applyCaption(title, subtitle);
-  hooks.applySize(size);
-
-  const photos = pickPhotos(query, layout);
-  for (let i = 0; i < photos.length; i += 1) {
-    try {
-      const image = await hooks.loadPhoto(photos[i]);
-      hooks.applyPhoto(i, image, photos[i]);
-    } catch {
-      // A missing sample leaves that panel empty; the shot still paints.
-    }
+  if (scene) {
+    await api.setLayout(query.get('layout') ?? scene.layout);
+    api.setGrade(query.get('grade') ?? scene.grade);
+    api.setSize(scene.size);
+  } else {
+    await api.setLayout(query.get('layout') ?? 'triptych');
+    api.setGrade(query.get('grade') ?? 'sunset');
+    api.setSize(size ?? 'square');
   }
 
-  if (shot === 'cover') {
-    document.body.classList.add('shot-cover');
+  const photos = scene?.photos ?? ['portrait-woman', 'portrait-man', 'boulevard', 'pier'];
+  for (let i = 0; i < photos.length; i++) {
+    const pick = query.get(`photo${i}`) ?? photos[i];
+    try { await api.setPanelSample(i, pick); } catch { /* keep the slot as is */ }
   }
-  await hooks.fontsReady();
-  hooks.refresh();
-  await paintWhenReady(hooks);
+  // Scene pan overrides keep faces in frame (e.g. the boulevard shot's
+  // subject sits high in its frame, so its crop window slides up).
+  for (const [index, pan] of Object.entries(scene?.pans ?? {})) {
+    api.setPanelPan(Number(index), pan.ox, pan.oy);
+  }
+
+  api.setTitle(query.get('caption') ?? (shot === 'cover' ? 'NEON HEAT' : api.state.title));
+  api.setSubtitle(query.get('subtitle') ?? api.state.subtitle);
+  api.redraw();
+  paintDone();
 }

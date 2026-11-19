@@ -9,66 +9,68 @@
 <body>
 <header class="topbar">
   <div class="brand">
-    <span class="brand-mark" aria-hidden="true">★</span>
+    <span class="brand-mark" aria-hidden="true">VC</span>
     <div>
       <h1>Vice Cover Studio</h1>
-      <p>Your photo + a caption, made into poster cover art. Offline — photos never leave this machine.</p>
+      <p>Turn any photo + caption into poster-style cover art. Offline, nothing leaves your machine.</p>
     </div>
   </div>
-  <div class="top-actions">
-    <button id="export-square" type="button" class="btn primary">Export 1080 × 1080</button>
-    <button id="export-portrait" type="button" class="btn">Export 1080 × 1350</button>
-    <button id="export-wide" type="button" class="btn">Export 1920 × 1080</button>
-  </div>
+  <p class="topbar-note">An original fan-made tool — not affiliated with Rockstar Games.</p>
 </header>
-
 <main class="studio">
-  <section class="preview" aria-label="Cover preview">
-    <div class="canvas-wrap">
-      <canvas id="cover" width="1080" height="1080" aria-label="Live cover preview"></canvas>
-      <p class="hint">Drag a photo on the cover to move it · scroll over a panel to zoom · click a panel to select it</p>
-    </div>
-    <div class="size-row" role="group" aria-label="Preview size">
-      <span class="row-label">Preview size</span>
-      <button type="button" class="chip size-chip is-active" data-size="square">Square</button>
-      <button type="button" class="chip size-chip" data-size="portrait">Portrait</button>
-      <button type="button" class="chip size-chip" data-size="wide">Wide</button>
-    </div>
+  <section class="preview-wrap" aria-label="Cover preview">
+    <canvas id="preview" width="1080" height="1080" aria-label="Live cover preview"></canvas>
+    <p class="preview-hint">Drag a photo on the cover to reposition it. Click a panel below to edit it.</p>
   </section>
-
   <aside class="controls" aria-label="Cover controls">
-    <section class="group">
+    <section class="control-group">
       <h2>Layout</h2>
-      <div class="chip-row" id="layout-row" role="group" aria-label="Layout"></div>
+      <div class="button-row" role="group" aria-label="Layout">
+        <button type="button" data-group="layout" data-value="triptych">Triptych</button>
+        <button type="button" data-group="layout" data-value="comic">Comic</button>
+        <button type="button" data-group="layout" data-value="heroDuo">Hero + Duo</button>
+        <button type="button" data-group="layout" data-value="quad">Quad</button>
+      </div>
     </section>
-
-    <section class="group">
+    <section class="control-group">
       <h2>Colour grade</h2>
-      <div class="chip-row" id="grade-row" role="group" aria-label="Colour grade"></div>
+      <div class="button-row" role="group" aria-label="Colour grade">
+        <button type="button" data-group="grade" data-value="sunset">Sunset</button>
+        <button type="button" data-group="grade" data-value="neon">Neon</button>
+        <button type="button" data-group="grade" data-value="golden">Golden Hour</button>
+        <button type="button" data-group="grade" data-value="noir">Noir</button>
+      </div>
     </section>
-
-    <section class="group">
+    <section class="control-group">
       <h2>Caption</h2>
-      <label class="field">Title
-        <input id="title" type="text" maxlength="30" value="SUNSET HEIST" autocomplete="off">
+      <label>Title
+        <input id="title" type="text" maxlength="24" value="NEON HEAT" autocomplete="off">
       </label>
-      <label class="field">Subtitle
-        <input id="subtitle" type="text" maxlength="40" value="LEONIDA • 2026" autocomplete="off">
+      <label>Subtitle
+        <input id="subtitle" type="text" maxlength="48" value="Sunset heist on Ocean Drive" autocomplete="off">
       </label>
     </section>
-
-    <section class="group">
-      <h2>Photos <span class="group-note" id="panel-count"></span></h2>
-      <div id="panel-list"></div>
-      <button id="fill-all" type="button" class="btn ghost">Use panel 1 photo everywhere</button>
+    <section class="control-group">
+      <h2>Photos</h2>
+      <div id="panels"></div>
+      <input id="upload" type="file" accept="image/*" hidden>
     </section>
-
-    <p id="status" class="status" role="status">Pick a sample or upload a photo to begin.</p>
-    <p class="fineprint">Original art drawn on canvas. No Rockstar Games logos, artwork or
-      fonts. Anton font under the SIL Open Font License — see app/fonts/FONTS.md.</p>
+    <section class="control-group">
+      <h2>Export PNG</h2>
+      <div class="button-row export-row" role="group" aria-label="Export size">
+        <button type="button" data-group="size" data-value="square">1080 × 1080</button>
+        <button type="button" data-group="size" data-value="portrait">1080 × 1350</button>
+        <button type="button" data-group="size" data-value="wide">1920 × 1080</button>
+      </div>
+      <div class="button-row export-row">
+        <button type="button" class="primary" data-export="square">Save square</button>
+        <button type="button" class="primary" data-export="portrait">Save portrait</button>
+        <button type="button" class="primary" data-export="wide">Save wide</button>
+      </div>
+      <p id="status" role="status">Pick a layout, drop in your photos, save a PNG.</p>
+    </section>
   </aside>
 </main>
-
 <script type="module" src="./src/editor.js"></script>
 </body>
 </html>
